@@ -34,7 +34,7 @@ def format_pacific_time():
     # pacific_tz = pytz.timezone('America/Los_Angeles')
     # pacific_now = datetime.now(pacific_tz)
     # formatted_time = pacific_now.strftime("%Y-%m-%d %H:%M PDT")
-    return "2022-08-17"
+    return "2024-08-17"
 
 
 def create_notion_page(title: str, content: str):
@@ -151,7 +151,7 @@ class ImageProcessingBot(PoeBot):
                         "No valid Mermaid diagram code was found in the response.")
 
                 # make call to Notion api to create new page
-                createNotionPage("New Page", clean_up_notion_request(current_bot_reply))
+                create_notion_page("New Page", clean_up_notion_request(current_bot_reply + "\n\n" + mermaid_url))
 
         else:
             yield self.text_event("Please upload an image to proceed.")
