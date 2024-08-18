@@ -10,7 +10,6 @@ from modal import App, Image, asgi_app
 from fastapi_poe import PoeBot, make_app
 from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import (
-    Attachment,
     PartialResponse,
     ProtocolMessage,
     QueryRequest,
@@ -24,7 +23,6 @@ INTRODUCTION_MESSAGE = """
 Take a picture of your whiteboard draft. This bot will create documentation from the picture.
 Upload a picture to start.
 """.strip()
-
 
 class ImageProcessingBot(PoeBot):
     prompt_bot = "GPT-4o"  # Using GPT-4o for generating responses
@@ -67,16 +65,29 @@ class ImageProcessingBot(PoeBot):
                         current_bot_reply += msg.text
                         yield self.text_event(msg.text)
 
-                # If you want to further process or extract specific parts of the response, you can do it here.
-                # For instance, extract Mermaid code and generate a URL.
-                if "```mermaid" in current_bot_reply:
-                    mermaid_code = current_bot_reply.split("```mermaid")[1].strip("```")
-                    mermaid_url = self.generate_mermaid_url(mermaid_code)
+                # Extract the Mermaid code only
+                mermaid_code = self.extract_mermaid_code(current_bot_reply)
 
+                if mermaid_code:
+                    mermaid_url = self.generate_mermaid_url(mermaid_code)
                     # Add the Mermaid diagram URL to the response
                     yield self.text_event(f"\nYou can also view the diagram here: [Mermaid Chart]({mermaid_url})")
+                else:
+                    yield self.text_event("No valid Mermaid diagram code was found in the response.")
+
         else:
             yield self.text_event("Please upload an image to proceed.")
+
+    def extract_mermaid_code(self, response_text: str) -> str:
+        # Extract the content between the ```mermaid and ``` delimiters
+        start_marker = "```mermaid"
+        end_marker = "```"
+        start_idx = response_text.find(start_marker)
+        end_idx = response_text.find(end_marker, start_idx + len(start_marker))
+        if start_idx != -1 and end_idx != -1:
+            # Extract and return the Mermaid code
+            return response_text[start_idx + len(start_marker):end_idx].strip()
+        return ""
 
     def generate_mermaid_url(self, mermaid_code: str) -> str:
         # Encode the Mermaid code to base64
