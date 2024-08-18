@@ -35,7 +35,7 @@ def createNotionPage(title: str, content: str):
                 {
                     "type": "text",
                     "text": {
-                    "content": "this is the sample text for Hello World #1"
+                    "content": content
                     }
                 }
                 ]
@@ -56,12 +56,12 @@ class ImageIngestion(fp.PoeBot):
     ) -> AsyncIterable[fp.PartialResponse]:
 
         async for msg in fp.stream_request(
-            request, "GPT-3.5-Turbo", request.access_key
+            request, "GPT-4o", request.access_key
         ):
             full_response.append(msg)
         full_response = ''.join(full_response)
         createNotionPage("hello world", full_response)
-        
+
     async def get_settings(self, setting: fp.SettingsRequest) -> fp.SettingsResponse:
         return fp.SettingsResponse(allow_attachments=True)
 
