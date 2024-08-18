@@ -5,6 +5,7 @@ import os
 from typing import AsyncIterable
 
 import requests
+import json
 from fastapi_poe import PoeBot, make_app
 from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import (
@@ -40,40 +41,53 @@ def create_notion_page(title: str, content: str):
     pdt_date_str = format_pacific_time()
     appended_title = f"{title} - {pdt_date_str}"
 
-    curl_cmd = (
-        f'curl -X POST "https://api.notion.com/v1/pages" '
-        f'-H "Authorization: Bearer secret_pIiXBtHIANdRvGxXG88kH9jlfDNjUQHZffyGH7O2LGi" '
-        f'-H "Content-Type: application/json" '
-        f'-H "Notion-Version: 2022-06-28" '
-        f"-d '{{"
-        f'"parent": {{'
-        f'"database_id": "0373a85b79df401b82b48b4f136554d2"'
-        f'}}, '
-        f'"properties": {{'
-        f'"title": {{'
-        f'"title": [{{'
-        f'"text": {{'
-        f'"content": "{appended_title}"'
-        f'}}'
-        f'}}]'
-        f'}}'
-        f'}}, '
-        f'"children": [{{'
-        f'"object": "block", '
-        f'"type": "paragraph", '
-        f'"paragraph": {{'
-        f'"rich_text": [{{'
-        f'"type": "text", '
-        f'"text": {{'
-        f'"content": "{content}"'
-        f'}}'
-        f'}}]'
-        f'}}'
-        f'}}]'
-        f"}}'"
-    )
+    url = "https://api.notion.com/v1/pages"
+    headers = {
+        "Authorization": "Bearer secret_pIiXBtHIANdRvGxXG88kH9jlfDNjUQHZffyGH7O2LGi",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+    }
 
-    eval(curl_cmd)
+    data = {
+        "parent": {
+            "database_id": "0373a85b79df401b82b48b4f136554d2"
+        },
+        "properties": {
+            "title": {
+                "title": [
+                    {
+                        "text": {
+                            "content": appended_title
+                        }
+                    }
+                ]
+            }
+        },
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": content
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    if response.status_code == 200:
+        print("Page created successfully.")
+    else:
+        print(f"Failed to create page. Status code: {response.status_code}")
+        print(response.text)
 
 
 def clean_up_notion_request(data: str):
