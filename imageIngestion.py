@@ -68,10 +68,10 @@ def createNotionPage(title: str, content: str):
         ]
     )
     print(response['choices'][0]['message']['content'])
-    json.load(response['choices'][0]['message']['content'])
+    content_json = json.load(response['choices'][0]['message']['content'])
     command = f'''
         curl -X POST https://api.notion.com/v1/pages -H "Authorization: Bearer secret_pIiXBtHIANdRvGxXG88kH9jlfDNjUQHZffyGH7O2LGi" \
-        -H "Content-Type: application/json" -H "Notion-Version: 2022-06-28" -d "{content_block}"
+        -H "Content-Type: application/json" -H "Notion-Version: 2022-06-28" -d "{content_json}"
     '''
     eval(command)
 
