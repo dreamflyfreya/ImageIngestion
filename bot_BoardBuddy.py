@@ -91,44 +91,6 @@ def createNotionPage(title: str, content: str):
     '''
     eval(command)
 
-
-# Function to extract the diagram and words from an image
-def extract_image_details(image_path):
-    # Placeholder for the actual image processing logic
-    # Ideally, this could involve OCR for text extraction and some form of image analysis for diagrams
-    # For now, we'll assume the function extracts words and a diagram (Mermaid code)
-
-    # Example extraction results
-    extracted_words = """
-    Stack: PoE / firework
-    
-    Data capture types:
-    - Presentation notes
-    - Tech stack diagrams/descriptions
-    - Code snippets/deploy scripts/config
-    - Q&A for refinement/edits
-    """
-
-    mermaid_code = """
-    graph TD
-        PoE --> Model
-        Model --> Fireworks
-    """
-
-    return extracted_words, mermaid_code
-
-
-# Function to generate a Mermaid chart URL using a third-party service
-def generate_mermaid_url(mermaid_code: str) -> str:
-    # Encode the Mermaid code to base64
-    base64_encoded_code = base64.urlsafe_b64encode(mermaid_code.encode('utf-8')).decode('utf-8')
-
-    # Construct the URL
-    url = f"https://mermaid.ink/svg/{base64_encoded_code}"
-
-    return url
-
-
 def clean_up_notion_request(data: str):
     # todo Perhaps use this to clean up to HTML objects or some other format for
     prepend_str = f"This page is AI generated using Poe, Modal, GPT-4o, and BoardBuddy\n\n"
