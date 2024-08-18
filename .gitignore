@@ -1,0 +1,77 @@
+__pycache__/
+*.pyc
+
+version.properties
+gitrepo
+
+# Ignore all files in sms_routes directory
+src/main/resources/sms_routes/*
+
+# But do not ignore template files
+!src/main/resources/sms_routes/*.template
+
+gradle.properties
+*admin_users.csv
+*env_routing.csv
+
+data/signaldata/
+
+
+bashscripts_mac.sh
+.gradle/
+.idea/*
+!.idea/codeStyles/
+build/
+*~
+*.swp
+*.iml
+local.properties
+.classpath
+.project
+.settings/
+out/
+.DS_Store
+/bin/
+/test-config/
+/version.txt
+*RoutingConfig.kt
+*.iml*
+*.idea*
+*out/*
+target/*
+*/*.class
+*database/*
+
+### Java ###
+*.class
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+
+### Gradle ###
+.gradle
+*/build/*
+build/*
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+**/.env*
