@@ -4,7 +4,6 @@ import base64
 import os
 from typing import AsyncIterable
 
-import pytz
 import requests
 from fastapi_poe import PoeBot, make_app
 from fastapi_poe.client import MetaMessage, stream_request
