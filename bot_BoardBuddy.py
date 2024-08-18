@@ -25,16 +25,16 @@ Upload a picture to start.
 """.strip()
 
 
-def format_utc_date():
-    utc_now = datetime.utcnow()
-    formatted_date = utc_now.strftime("%Y_%m_%d")
-    return formatted_date
+# def format_utc_date():
+#     utc_now = datetime.utcnow()
+#     formatted_date = utc_now.strftime("%Y_%m_%d")
+#     return formatted_date
 
 def format_pacific_time():
-    pacific_tz = pytz.timezone('America/Los_Angeles')
-    pacific_now = datetime.now(pacific_tz)
-    formatted_time = pacific_now.strftime("%Y-%m-%d %H:%M PDT")
-    return formatted_time
+    # pacific_tz = pytz.timezone('America/Los_Angeles')
+    # pacific_now = datetime.now(pacific_tz)
+    # formatted_time = pacific_now.strftime("%Y-%m-%d %H:%M PDT")
+    return "2022-08-17"
 
 
 def createNotionPage(title: str, content: str):
