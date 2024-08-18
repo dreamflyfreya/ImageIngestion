@@ -78,7 +78,7 @@ def createNotionPage(title: str, content: str):
         messages=[
             {"role": "system", "content": "You are a json generator. For any command, \
              you should only generate json and nothing else. \
-             That is, you response should only contaion the resulting json string"},
+             That is, you response should only contain the resulting json string"},
             {"role": "user",
              "content": f"Please convert {str(content_block)} to notion readable json."}
         ]
