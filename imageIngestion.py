@@ -83,7 +83,7 @@ class Model:
             
     @asgi_app()
     def fastapi_app(self):
-        bot = PDFSizeBot()
+        bot = ImageIngestion()
         app = fp.make_app(bot, access_key=self.access_key)
         return app
 
