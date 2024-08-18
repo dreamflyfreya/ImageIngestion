@@ -104,7 +104,6 @@ class ImageProcessingBot(PoeBot):
 
     async def get_settings(self, setting: SettingsRequest) -> SettingsResponse:
         return SettingsResponse(
-            server_bot_dependencies={self.prompt_bot: self.code_iteration_limit},
             allow_attachments=self.allow_attachments,
             introduction_message=INTRODUCTION_MESSAGE,
             enable_image_comprehension=True,
