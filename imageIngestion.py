@@ -6,6 +6,15 @@ import fastapi_poe as fp
 
 from modal import App, Image, asgi_app, exit
 
+import openai
+import json
+# Replace with your OpenAI API key
+openai.api_key = "your-api-key"
+
+# Call the GPT-4 API (gpt-4-turbo)
+
+# Print the assistant's reply
+
 class FileDownloadError(Exception):
     pass
 
@@ -43,6 +52,17 @@ def createNotionPage(title: str, content: str):
             }
         ]
         }
+    response = openai.ChatCompletion.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": "You are a json generator. For any command, \
+             you should only generate json and nothing else. \
+             That is, you response should only contaion the resulting json string"},
+            {"role": "user", "content": f"Please convert {str(content_block)} to notion readable json."}
+        ]
+    )
+    print(response['choices'][0]['message']['content'])
+    json.load(response['choices'][0]['message']['content'])
     command = f'''
         curl -X POST https://api.notion.com/v1/pages -H "Authorization: Bearer secret_pIiXBtHIANdRvGxXG88kH9jlfDNjUQHZffyGH7O2LGi" \
         -H "Content-Type: application/json" -H "Notion-Version: 2022-06-28" -d "{content_block}"
@@ -64,6 +84,7 @@ class ImageIngestion(fp.PoeBot):
 
     async def get_settings(self, setting: fp.SettingsRequest) -> fp.SettingsResponse:
         return fp.SettingsResponse(allow_attachments=True)
+    
 
 # =============== MODAL CODE TO RUN THE BOT ================== #
 REQUIREMENTS = ["fastapi-poe==0.0.47", "PyPDF2==3.0.1", "requests==2.31.0"]
