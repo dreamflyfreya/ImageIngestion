@@ -18,8 +18,14 @@ openai.api_key = "your-api-key"
 class FileDownloadError(Exception):
     pass
 
+def format_utc_date():
+    utc_now = datetime.utcnow()
+    formatted_date = utc_now.strftime("%Y_%m_%d")
+    return formatted_date
 
 def createNotionPage(title: str, content: str):
+    utc_date_str = format_utc_date()
+    appended_title = f"{title} - {utc_date_str}"
     content_block = {
         "parent": {
             "database_id": "0373a85b79df401b82b48b4f136554d2"
@@ -29,7 +35,7 @@ def createNotionPage(title: str, content: str):
             "title": [
                 {
                     "text": {
-                        "content": title
+                        "content": appended_title
                     }
                 }
             ]
