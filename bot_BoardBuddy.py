@@ -188,7 +188,7 @@ class ImageProcessingBot(PoeBot):
                     yield self.text_event("No valid Mermaid diagram code was found in the response.")
 
                 # make call to Notion api to create new page
-                createNotionPage("New Page", clean_up_notion_request(response_text))
+                createNotionPage("New Page", clean_up_notion_request(current_bot_reply))
 
         else:
             yield self.text_event("Please upload an image to proceed.")
