@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import os
-import requests
 import base64
+import os
 from typing import AsyncIterable
 
-import modal
-from modal import App, Image, asgi_app
+import openai
+import pytz
+import requests
 from fastapi_poe import PoeBot, make_app
 from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import (
@@ -16,6 +16,7 @@ from fastapi_poe.types import (
     SettingsRequest,
     SettingsResponse,
 )
+from modal import App, Image, asgi_app
 
 app = App("BoardBuddy")
 
@@ -24,12 +25,123 @@ Take a picture of your whiteboard draft. This bot will create documentation from
 Upload a picture to start.
 """.strip()
 
+
+def format_utc_date():
+    utc_now = datetime.utcnow()
+    formatted_date = utc_now.strftime("%Y_%m_%d")
+    return formatted_date
+
+def format_pacific_time():
+    pacific_tz = pytz.timezone('America/Los_Angeles')
+    pacific_now = datetime.now(pacific_tz)
+    formatted_time = pacific_now.strftime("%Y-%m-%d %H:%M PDT")
+    return formatted_time
+
+
+def createNotionPage(title: str, content: str):
+    pdt_date_str = format_pacific_time()
+    appended_title = f"{title} - {pdt_date_str}"
+    content_block = {
+        "parent": {
+            "database_id": "0373a85b79df401b82b48b4f136554d2"
+        },
+        "properties": {
+            "title": {
+                "title": [
+                    {
+                        "text": {
+                            "content": appended_title
+                        }
+                    }
+                ]
+            }
+        },
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": content
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+    response = openai.ChatCompletion.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": "You are a json generator. For any command, \
+             you should only generate json and nothing else. \
+             That is, you response should only contaion the resulting json string"},
+            {"role": "user",
+             "content": f"Please convert {str(content_block)} to notion readable json."}
+        ]
+    )
+    print(response['choices'][0]['message']['content'])
+    content_json = json.load(response['choices'][0]['message']['content'])
+    command = f'''
+        curl -X POST https://api.notion.com/v1/pages -H "Authorization: Bearer secret_pIiXBtHIANdRvGxXG88kH9jlfDNjUQHZffyGH7O2LGi" \
+        -H "Content-Type: application/json" -H "Notion-Version: 2022-06-28" -d "{content_json}"
+    '''
+    eval(command)
+
+
+# Function to extract the diagram and words from an image
+def extract_image_details(image_path):
+    # Placeholder for the actual image processing logic
+    # Ideally, this could involve OCR for text extraction and some form of image analysis for diagrams
+    # For now, we'll assume the function extracts words and a diagram (Mermaid code)
+
+    # Example extraction results
+    extracted_words = """
+    Stack: PoE / firework
+    
+    Data capture types:
+    - Presentation notes
+    - Tech stack diagrams/descriptions
+    - Code snippets/deploy scripts/config
+    - Q&A for refinement/edits
+    """
+
+    mermaid_code = """
+    graph TD
+        PoE --> Model
+        Model --> Fireworks
+    """
+
+    return extracted_words, mermaid_code
+
+
+# Function to generate a Mermaid chart URL using a third-party service
+def generate_mermaid_url(mermaid_code: str) -> str:
+    # Encode the Mermaid code to base64
+    base64_encoded_code = base64.urlsafe_b64encode(mermaid_code.encode('utf-8')).decode('utf-8')
+
+    # Construct the URL
+    url = f"https://mermaid.ink/svg/{base64_encoded_code}"
+
+    return url
+
+
+def clean_up_notion_request(data: str):
+    # todo Perhaps use this to clean up to HTML objects or some other format for
+    prepend_str = f"This page is AI generated using Poe, Modal, GPT-4o, and BoardBuddy\n\n"
+    return prepend_str + data
+
+
+# Define the bot class
 class ImageProcessingBot(PoeBot):
     prompt_bot = "GPT-4o"  # Using GPT-4o for generating responses
     allow_attachments = True  # Ensure this is set to True
 
     async def get_response(
-        self, request: QueryRequest
+            self, request: QueryRequest
     ) -> AsyncIterable[PartialResponse]:
         last_message = request.query[-1].content
         original_message_id = request.message_id
@@ -75,6 +187,9 @@ class ImageProcessingBot(PoeBot):
                 else:
                     yield self.text_event("No valid Mermaid diagram code was found in the response.")
 
+                # make call to Notion api to create new page
+                createNotionPage("New Page", clean_up_notion_request(response_text))
+
         else:
             yield self.text_event("Please upload an image to proceed.")
 
@@ -104,6 +219,7 @@ class ImageProcessingBot(PoeBot):
         )
 
 
+
 # Setup the bot in the Modal environment
 image_bot = (
     Image.debian_slim()
@@ -116,6 +232,7 @@ image_bot = (
 )
 
 bot = ImageProcessingBot()
+
 
 @app.function(image=image_bot, container_idle_timeout=1200)
 @asgi_app()
