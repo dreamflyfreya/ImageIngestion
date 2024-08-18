@@ -8,8 +8,11 @@ from typing import AsyncIterable
 import modal
 from modal import App, Image, asgi_app
 from fastapi_poe import PoeBot, make_app
+from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import (
+    Attachment,
     PartialResponse,
+    ProtocolMessage,
     QueryRequest,
     SettingsRequest,
     SettingsResponse,
@@ -22,92 +25,73 @@ Take a picture of your whiteboard draft. This bot will create documentation from
 Upload a picture to start.
 """.strip()
 
-# Function to extract the diagram and words from an image
-def extract_image_details(image_path):
-    # Placeholder for the actual image processing logic
-    # Ideally, this could involve OCR for text extraction and some form of image analysis for diagrams
-    # For now, we'll assume the function extracts words and a diagram (Mermaid code)
-    
-    # Example extraction results
-    extracted_words = """
-    Stack: PoE / firework
-    
-    Data capture types:
-    - Presentation notes
-    - Tech stack diagrams/descriptions
-    - Code snippets/deploy scripts/config
-    - Q&A for refinement/edits
-    """
-    
-    mermaid_code = """
-    graph TD
-        PoE --> Model
-        Model --> Fireworks
-    """
-    
-    return extracted_words, mermaid_code
 
-# Function to generate a Mermaid chart URL using a third-party service
-def generate_mermaid_url(mermaid_code: str) -> str:
-    # Encode the Mermaid code to base64
-    base64_encoded_code = base64.urlsafe_b64encode(mermaid_code.encode('utf-8')).decode('utf-8')
-    
-    # Construct the URL
-    url = f"https://mermaid.ink/svg/{base64_encoded_code}"
-    
-    return url
-
-# Define the bot class
 class ImageProcessingBot(PoeBot):
+    prompt_bot = "GPT-4o"  # Using GPT-4o for generating responses
     allow_attachments = True  # Ensure this is set to True
 
     async def get_response(
         self, request: QueryRequest
     ) -> AsyncIterable[PartialResponse]:
-        try:
-            # Check for attachments
-            if request.query[-1].attachments:
-                for attachment in request.query[-1].attachments:
-                    # Download the image
-                    r = requests.get(attachment.url)
-                    image_path = attachment.name
-                    with open(image_path, "wb") as f:
-                        f.write(r.content)
+        last_message = request.query[-1].content
+        original_message_id = request.message_id
 
-                    # Extract words and diagram from the image
-                    extracted_words, mermaid_code = extract_image_details(image_path)
+        # Check if there are attachments (images)
+        if request.query[-1].attachments:
+            for attachment in request.query[-1].attachments:
+                # Download the image
+                r = requests.get(attachment.url)
+                image_path = attachment.name
+                with open(image_path, "wb") as f:
+                    f.write(r.content)
 
-                    # Generate a Mermaid chart URL
-                    mermaid_url = generate_mermaid_url(mermaid_code)
+                # Prepare prompt for GPT-4o
+                prompt = f"""
+                I have an image with the file path: {image_path}. 
+                Please analyze the image and extract any text and diagram details. 
+                Return the extracted text and convert any diagrams into Mermaid diagram code.
+                """
 
-                    # Build the response
-                    response_text = f"""
-                    Extracted Words:
-                    {extracted_words}
+                # Add the prompt to the request and call GPT-4o
+                request.query.append(ProtocolMessage(role="user", content=prompt))
+                current_bot_reply = ""
 
-                    Mermaid Diagram Code:
-                    ```mermaid
-                    {mermaid_code}
-                    ```
+                async for msg in stream_request(request, self.prompt_bot, request.api_key):
+                    if isinstance(msg, MetaMessage):
+                        continue
+                    elif msg.is_suggested_reply:
+                        yield self.suggested_reply_event(msg.text)
+                    elif msg.is_replace_response:
+                        yield self.replace_response_event(msg.text)
+                    else:
+                        current_bot_reply += msg.text
+                        yield self.text_event(msg.text)
 
-                    You can also view the diagram here: [Mermaid Chart]({mermaid_url})
-                    """
+                # If you want to further process or extract specific parts of the response, you can do it here.
+                # For instance, extract Mermaid code and generate a URL.
+                if "```mermaid" in current_bot_reply:
+                    mermaid_code = current_bot_reply.split("```mermaid")[1].strip("```")
+                    mermaid_url = self.generate_mermaid_url(mermaid_code)
 
-                    yield self.text_event(response_text)
-            else:
-                # If no attachment is provided
-                yield self.text_event("Please upload an image to proceed.")
+                    # Add the Mermaid diagram URL to the response
+                    yield self.text_event(f"\nYou can also view the diagram here: [Mermaid Chart]({mermaid_url})")
+        else:
+            yield self.text_event("Please upload an image to proceed.")
 
-        except Exception as e:
-            # Catch any errors and return a friendly message
-            yield self.text_event(f"An error occurred: {str(e)}")
+    def generate_mermaid_url(self, mermaid_code: str) -> str:
+        # Encode the Mermaid code to base64
+        base64_encoded_code = base64.urlsafe_b64encode(mermaid_code.encode('utf-8')).decode('utf-8')
+        # Construct the URL
+        return f"https://mermaid.ink/svg/{base64_encoded_code}"
 
     async def get_settings(self, setting: SettingsRequest) -> SettingsResponse:
         return SettingsResponse(
             allow_attachments=self.allow_attachments,
             introduction_message=INTRODUCTION_MESSAGE,
             enable_image_comprehension=True,
+            server_bot_dependencies={self.prompt_bot: 3},  # Allow 3 calls to GPT-4o
         )
+
 
 # Setup the bot in the Modal environment
 image_bot = (
