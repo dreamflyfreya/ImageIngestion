@@ -19,9 +19,9 @@ def createNotionPage(title: str, content: str):
             "title": {
             "title": [
                 {
-                "text": {
-                    "content": content
-                }
+                    "text": {
+                        "content": title
+                    }
                 }
             ]
             }
@@ -54,16 +54,14 @@ class ImageIngestion(fp.PoeBot):
     async def get_response(
         self, request: fp.QueryRequest
     ) -> AsyncIterable[fp.PartialResponse]:
-        for message in reversed(request.query):
-            for attachment in message.attachments:
-                if attachment.content_type == "application/pdf":
-                    try:
-                        num_pages = _fetch_pdf_and_count_num_pages(attachment.url)
-                        yield fp.PartialResponse(text=f"{attachment.name} has {num_pages} pages")
-                    except FileDownloadError:
-                        yield fp.PartialResponse(text="Failed to retrieve the document.")
-                    return
 
+        async for msg in fp.stream_request(
+            request, "GPT-3.5-Turbo", request.access_key
+        ):
+            full_response.append(msg)
+        full_response = ''.join(full_response)
+        createNotionPage("hello world", full_response)
+        
     async def get_settings(self, setting: fp.SettingsRequest) -> fp.SettingsResponse:
         return fp.SettingsResponse(allow_attachments=True)
 
